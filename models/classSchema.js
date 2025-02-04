@@ -1,40 +1,40 @@
-import mongoose from 'mongoose';
-// making class
+import mongoose from "mongoose";
+
 const classSchema = new mongoose.Schema({
-    name: {
+    className: {
         type: String,
         required: true,
+        unique: true, // Class name must be unique across the app
         trim: true,
-        unique: true,
-        minlength: [4, 'Class Name must contain atleast 4 characters '],
-        maxlength: [60, 'Class Name must not contain more than 60 characters']
+        minlength:[4,'Class name must contain 4 characters'],
+        maxlength:[40,'Characters must not be more than 40']
     },
     description: {
         type: String,
-        required: true,
         trim: true,
-        minlength: [4, 'Class Name must contain atleast 4 characters '],
-        maxlength: [200, 'Class Name must not contain more than 200 characters']
+        minlength:[20,'Description must contain 20 digits'],
+        maxlength:[150,'Characters must not be more than 150']
     },
-    category: String,
     classCode: {
         type: String,
         required: true,
-        unique: true, // Globally unique class code
+        unique: true // Unique class code for searching
     },
-    adminId: {
+    category: {
+        type: String,
+        required: true,
+        enum: ["Colleague", "Classmates", "Friends", "Other"]
+    },
+    admins: [  // 🔥 Allow multiple admins
+    {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
-    },
-    // role: {
-    //     type: String,
-    //     enum: ["admin", "user"],
-    //     default: "admin"
-    // },
+        required:true,
+    }
+],
     createdAt: {
         type: Date,
-        default: Date.now,
-    },
+        default: Date.now
+    }
 });
-module.exports = mongoose.model("Class", classSchema);
+export const Class = mongoose.model("Class", classSchema);

@@ -22,4 +22,4 @@ const announcementSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("Announcement", announcementSchema);
+export const Announcement= mongoose.model("Announcement", announcementSchema);

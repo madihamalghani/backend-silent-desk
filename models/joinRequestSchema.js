@@ -22,4 +22,4 @@ const joinRequestSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("JoinRequest", joinRequestSchema);
+export const JoinRequest = mongoose.model("JoinRequest", joinRequestSchema);

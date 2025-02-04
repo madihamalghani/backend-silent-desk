@@ -1,12 +1,12 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors'; //connection
 import { config } from "dotenv";
-import { errorMiddleware, notFoundMiddleware } from './middlewares/error.js';
-
 import express from 'express';
 import connectToDb from './db/db.js';
+import { errorMiddleware, notFoundMiddleware } from './middlewares/error.js';
+import classRouter from './routes/classRouter.js';
+import userRouter from './routes/userRouter.js';
 config({path:'./config/config.env'})
-
 const app=express();
 app.use(cors({
     origin:['http://localhost:4000',process.env.FRONTEND_URL],
@@ -19,8 +19,8 @@ app.use(cors({
 //     })
 app.use(express.json());
 app.use(cookieParser());
-    // app.use('/api/user',userRouter)
-    // app.use('/api/application',applicationRouter)
+    app.use('/api/auth',userRouter)
+    app.use('/api/class',classRouter)
     // app.use('/api/job',jobRouter)
 
 // cookie-parser is written before express.json

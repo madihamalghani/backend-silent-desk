@@ -24,6 +24,11 @@ const classMembershipSchema = new mongoose.Schema(
             enum: ["admin", "user"],
             default: "user"
         },
+        status: {  // 🔥 New field for approval
+            type: String,
+            enum: ["pending", "approved"],
+            default: "pending"
+        },
         joinedAt: {
             type: Date,
             default: Date.now,
@@ -34,4 +39,4 @@ const classMembershipSchema = new mongoose.Schema(
 // Create a compound index to ensure that for any given class,
 // no two memberships have the same classDisplayName.
 classMembershipSchema.index({ classId: 1, classDisplayName: 1 }, { unique: true });
-module.exports = mongoose.model("Membership", MembershipSchema);
+export const Membership = mongoose.model("Membership",classMembershipSchema);
