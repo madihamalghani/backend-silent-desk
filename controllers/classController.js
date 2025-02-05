@@ -1,39 +1,39 @@
-import crypto from "crypto";
+import crypto from 'crypto';
 import { catchAsyncErrors } from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../middlewares/error.js';
 import { Class } from "../models/classSchema.js";
 
 export const createClass = catchAsyncErrors(async (req, res, next) => {
-    const { className, description, category } = req.body;
-    const userId = req.user.id; // Logged-in user is the admin
+    const { name, description, category } = req.body;
+    if(!name || !description || !category){
+        return next(new ErrorHandler('Please Provide Complete detail'))
 
-    const existingClass = await Class.findOne({ className });
-    if (existingClass) {
-        return next(new ErrorHandler("Class name already exists", 400));
     }
-
-    const classCode = crypto.randomBytes(4).toString("hex").toUpperCase();
-
+    const userId = req.user.id;
+    let classCode;
+    let isUnique = false;
+    while (!isUnique) {
+        classCode = crypto.randomBytes(4).toString("hex").toUpperCase();
+        const existingClass = await Class.findOne({ classCode });
+        if (!existingClass) {
+            isUnique = true;
+        }
+    }
     const newClass = await Class.create({
-        className,
+        name,
         description,
         category,
         classCode,
         admins: [userId]
     });
     // Add creator as a member
-    // await Membership.create({
-    //     userId,
-    //     classId: newClass._id,
-    //     classDisplayName: req.user.username, // Unique within class
-    //     role: "admin",
-    // });
+    await Membership.create({
+        userId,
+        classId: newClass._id,
+        classDisplayName: req.user.username, // Unique within class
+        role: "admin",
+    });
 
-    // res.status(201).json({
-    //     success: true,
-    //     message: "Class created successfully!",
-    //     class: newClass
-    // });
 
     res.status(201).json({
         success: true,
@@ -41,36 +41,52 @@ export const createClass = catchAsyncErrors(async (req, res, next) => {
         class: newClass
     });
 });
+
+
 // ---------------------Find class by code---------------
 export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
-    const code = req.user.classCode;
+    const { classCode } = req.body;
+    if (!classCode) {
+        return next(new ErrorHandler('Please Provide Class Code'))
+    }
+    const classExists = await Class.findOne({ classCode });
+    if (!classExists) {
+        return next(new ErrorHandler('Please Provide Correct Class Code'))
 
-    const classData = await Class.findOne(code);
-    if (!classData) {
-        return next(new ErrorHandler("Class not found ", 404));
     }
     res.status(200).json({
+
         success: true,
-        classData
+        message: "Class Exists",
+        class: classExists // Send the full class data from DB
     })
+
 })
-// ------------------Send request to be a member----------------------------
+// ------------------Join class with approval----------------------------
+// export const joinClass = catchAsyncErrors(async (req, res, next) => {
+//     const { classCode, classDisplayName } = req.body;
+//     const userId = req.user._id; 
 
-// const addMemberToClass = async (classId, userId, displayName) => {
-//     const classGroup = await Class.findById(classId);
-//     if (!classGroup) throw new Error("Class not found");
+//     // Find class by classCode
+//     const foundClass = await Class.findOne({ classCode });
+//     if (!foundClass) return res.status(404).json({ success: false, message: "Class not found" });
 
-//     // Check if the user is already in the class
-//     const existingMember = classGroup.members.find(member => member.user.toString() === userId);
-//     if (existingMember) throw new Error("User is already a member");
+//     // Check if user already requested
+//     const existingMembership = await Membership.findOne({ userId, classId: foundClass._id });
+//     if (existingMembership) return res.status(400).json({ success: false, message: "Request already sent" });
 
-//     // Add new member with "pending" status
-//     classGroup.members.push({
-//         user: userId,
-//         name: displayName,
+//     // Create join request with "pending" status
+//     await Membership.create({
+//         userId,
+//         classId: foundClass._id,
+//         classDisplayName,
+//         role: "user",
 //         status: "pending"
 //     });
 
-//     await classGroup.save();
-//     console.log("Member added, waiting for approval.");
-// };
+//     res.status(200).json({
+//         success: true,
+//         message: "Join request sent to admin!"
+//     });
+// });
+// ------------------------------------

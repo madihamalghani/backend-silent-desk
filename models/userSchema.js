@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
             maxlength:[20,'password must not exceed 20 characters'],
             select:false
         },
-        createdAt:{
+        joinedAt:{
             type:Date,
             default:Date.now,
         }
