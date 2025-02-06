@@ -1,32 +1,33 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+
 const messageSchema = new mongoose.Schema(
     {
-        // receiverId
+        senderId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null  // Anonymous messages have no sender
+        },
         recipientId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
+            required: true
         },
         classId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Class",
-            required: true,
+            required: true
         },
-        content: {
+        message: {
             type: String,
             required: true,
-            trim: true,
+            trim: true
         },
-        timestamp: {
-            type: Date,
-            default: Date.now,
-        },
-        // Optional: store sender info for moderation without exposing it to users
-        senderId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+        isAnonymous: {
+            type: Boolean,
+            default: false  // This will be true for anonymous messages
         }
-    }
+    },
+    { timestamps: true }  // Auto-adds createdAt & updatedAt timestamps
 );
-export const Message=mongoose.model("Message", messageSchema);
 
+export const Message = mongoose.model("Message", messageSchema);

@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { catchAsyncErrors } from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../middlewares/error.js';
 import { Class } from "../models/classSchema.js";
-
+// --------------Create Class--------------------
 export const createClass = catchAsyncErrors(async (req, res, next) => {
     const { name, description, category } = req.body;
     if(!name || !description || !category){
@@ -62,31 +62,3 @@ export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
     })
 
 })
-// ------------------Join class with approval----------------------------
-// export const joinClass = catchAsyncErrors(async (req, res, next) => {
-//     const { classCode, classDisplayName } = req.body;
-//     const userId = req.user._id; 
-
-//     // Find class by classCode
-//     const foundClass = await Class.findOne({ classCode });
-//     if (!foundClass) return res.status(404).json({ success: false, message: "Class not found" });
-
-//     // Check if user already requested
-//     const existingMembership = await Membership.findOne({ userId, classId: foundClass._id });
-//     if (existingMembership) return res.status(400).json({ success: false, message: "Request already sent" });
-
-//     // Create join request with "pending" status
-//     await Membership.create({
-//         userId,
-//         classId: foundClass._id,
-//         classDisplayName,
-//         role: "user",
-//         status: "pending"
-//     });
-
-//     res.status(200).json({
-//         success: true,
-//         message: "Join request sent to admin!"
-//     });
-// });
-// ------------------------------------
