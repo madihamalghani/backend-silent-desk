@@ -8,3 +8,4 @@ npm i jsonwebtoken
 cookie-parser
 npm install --save-dev nodemon
 npm install date-fns
+npm i ws

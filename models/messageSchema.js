@@ -22,6 +22,10 @@ const messageSchema = new mongoose.Schema(
             required: true,
             trim: true
         },
+        read: {
+            type: Boolean,
+            default: false  // Initially, a message is unread
+        },
         isAnonymous: {
             type: Boolean,
             default: false  // This will be true for anonymous messages

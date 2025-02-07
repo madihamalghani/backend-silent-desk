@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-
+// const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 const announcementSchema = new mongoose.Schema({
     classId: {
         type: mongoose.Schema.Types.ObjectId,

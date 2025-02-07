@@ -59,11 +59,23 @@ export const getusers=catchAsyncErrors(async(req,res,next)=>{
 export const deleteAccount = catchAsyncErrors(async (req, res, next) => {
     const userId = req.user.id;
 
+    // Find the user
     const user = await User.findById(userId);
     if (!user) {
         return next(new ErrorHandler("User not found", 404));
     }
 
+    // Find classes where the user is an admin
+    const adminClasses = await Class.find({ admins: userId });
+
+    // Check if the user is the only admin in any class
+    for (let cls of adminClasses) {
+        if (cls.admins.length === 1) {
+            return next(new ErrorHandler("You cannot delete your account because you are the only admin in a class. Please assign another admin before deleting.", 403));
+        }
+    }
+
+    // If user is not the only admin, proceed with deletion
     await user.deleteOne(); 
 
     res.status(200)

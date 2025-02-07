@@ -62,3 +62,34 @@ export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
     })
 
 })
+// get--all-classes on my web
+export const getAllClasses = catchAsyncErrors(async (req, res, next) => {
+    const classes = await Class.find(); // Fetch all classes
+
+    res.status(200).json({
+        success: true,
+        classes,
+    });
+});
+// -----------where user is member----------
+export const getUserClasses = catchAsyncErrors(async (req, res, next) => {
+    const userId = req.user.id;
+
+    const classes = await Class.find({ members: userId }); // Fetch classes where the user is a member
+
+    res.status(200).json({
+        success: true,
+        classes,
+    });
+});
+// -----------where user is admin---------
+export const getAdminClasses = catchAsyncErrors(async (req, res, next) => {
+    const userId = req.user.id;
+
+    const classes = await Class.find({ admins: userId }); // Fetch classes where the user is an admin
+
+    res.status(200).json({
+        success: true,
+        classes,
+    });
+});

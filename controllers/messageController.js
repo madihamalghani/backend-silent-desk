@@ -2,24 +2,36 @@ import { catchAsyncErrors } from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../middlewares/error.js';
 import { Message } from "../models/messageSchema.js";
 
-// Function to create a message
+import { clients } from '../websocket.js'; // Import WebSocket clients
+
+// Function to create a message and send via WebSocket
 export const createMessage = catchAsyncErrors(async (req, res, next) => {
     const { recipientId, classId, message, isAnonymous } = req.body;
+
     if (!recipientId || !classId || !message) {
         return next(new ErrorHandler("Recipient ID, Class ID, and Message are required", 400));
     }
+
     const newMessage = new Message({
-        // senderId: isAnonymous ? null : req.user.id,
-        // in order to send with sender id but flagged anonymous as true  
-        senderId:req.user.id,
+        senderId: req.user.id,
         recipientId,
         classId,
         message,
         isAnonymous
     });
+
     await newMessage.save();
-    // Push the message to the recipient in real-time (if they are connected via socket)
-    // io.to(recipientId).emit('newMessage', newMessage); // This sends the message to the recipient
+
+    // Real-time WebSocket broadcast to recipient
+    const recipientSocket = clients.get(recipientId);
+    if (recipientSocket && recipientSocket.readyState === 1) { // 1 = WebSocket.OPEN
+        recipientSocket.send(JSON.stringify({
+            type: "newMessage",
+            sender: isAnonymous ? "Anonymous" : req.user.id,
+            message,
+            classId
+        }));
+    }
 
     res.status(200).json({
         success: true,
@@ -47,14 +59,38 @@ export const getMessagesForUser = catchAsyncErrors(async (req, res, next) => {
     const messages = await Message.find({
         $or: [{ senderId: userId }, { recipientId: userId }]
     })
-        .populate("senderId", "name")  // Populate sender's name
-        .populate("recipientId", "name");  // Populate recipient's name
+        .populate("senderId", "name")
+        .populate("recipientId", "name");
+
+    // Mark all fetched messages as read
+    await Message.updateMany(
+        { recipientId: userId, read: false },
+        { $set: { read: true } }
+    );
 
     res.status(200).json({
         success: true,
         messages
     });
 });
+// -----------------get unread messages from user--------------
+
+export const getUnreadMessagesForUser = catchAsyncErrors(async (req, res, next) => {
+    const userId = req.user.id;
+
+    const unreadMessages = await Message.find({
+        recipientId: userId,
+        read: false
+    })
+        .populate("senderId", "name")
+        .populate("recipientId", "name");
+
+    res.status(200).json({
+        success: true,
+        unreadMessages
+    });
+});
+
 // ----------get specific message-----------
 // Function to get a specific message by ID
 export const getMessageById = catchAsyncErrors(async (req, res, next) => {
@@ -79,11 +115,13 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
     const { messageId, replyMessage } = req.body;
 
     // Find the original message
-    const originalMessage = await Message.findById(messageId);
+    const originalMessage = await Message.findById(messageId).populate('senderId recipientId');
 
     if (!originalMessage) {
         return next(new ErrorHandler("Original message not found", 404));
     }
+
+
 
     // Check if the current user is either the sender or the recipient of the original message
     if (originalMessage.senderId.toString() !== req.user.id && originalMessage.recipientId.toString() !== req.user.id) {
@@ -93,13 +131,26 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
     // Create a reply
     const reply = new Message({
         senderId: req.user.id,
-        recipientId: originalMessage.senderId === req.user.id ? originalMessage.recipientId : originalMessage.senderId, // Reply goes to the opposite party
+        recipientId: originalMessage.senderId === req.user.id ? originalMessage.recipientId : originalMessage.senderId, // Ensure recipientId is correctly assigned
         classId: originalMessage.classId,
         message: replyMessage,
-        isAnonymous: false  // You can modify this based on requirements
+        isAnonymous: false  // Modify as needed
     });
 
+
     await reply.save();
+
+    // Check for valid recipientId before emitting WebSocket
+    if (!reply.recipientId) {
+        return next(new ErrorHandler("Recipient ID is missing for the reply", 400));
+    }
+
+    // Emit WebSocket event for the reply
+    const io = req.app.get('socketio');
+    io.to(reply.recipientId.toString()).emit('newReply', {
+        message: reply,
+        senderId: req.user.id
+    });
 
     res.status(200).json({
         success: true,
@@ -107,57 +158,60 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+// ---------------------------------
 
-// -----------------delete specific message---------
 // Function to delete a message
-// export const deleteMessage = catchAsyncErrors(async (req, res, next) => {
-//     const { messageId } = req.params;
+export const deleteMessage = catchAsyncErrors(async (req, res, next) => {
+    const { messageId } = req.params;
 
-//     // Find the message
-//     const message = await Message.findById(messageId);
+    // Find the message
+    const message = await Message.findById(messageId);
 
-//     if (!message) {
-//         return next(new ErrorHandler("Message not found", 404));
-//     }
+    if (!message) {
+        return next(new ErrorHandler("Message not found", 404));
+    }
 
-//     // Check if the current user is the sender
-//     if (message.senderId.toString() !== req.user.id) {
-//         return next(new ErrorHandler("You are not authorized to delete this message", 403));
-//     }
+    // Check if the current user is the sender
+    if (message.senderId.toString() !== req.user.id) {
+        return next(new ErrorHandler("You are not authorized to delete this message", 403));
+    }
 
-//     // Delete the message
-//     await message.remove();
+    // Delete the message using deleteOne (instead of remove)
+    await Message.deleteOne({ _id: messageId }); // Or message.delete()
 
-//     res.status(200).json({
-//         success: true,
-//         message: "Message deleted successfully"
-//     });
-// });
+    res.status(200).json({
+        success: true,
+        message: "Message deleted successfully"
+    });
+});
+// ------------------edit message------------------
 
-//------------------- Function to mark a message as read
-// export const markMessageAsRead = catchAsyncErrors(async (req, res, next) => {
-//     const { messageId } = req.params;
+export const editMessage = catchAsyncErrors(async (req, res, next) => {
+    const {  newMessage } = req.body;
+    const {messageId} =req.params;
 
-//     // Find the message
-//     const message = await Message.findById(messageId);
+    // Find the original message
+    const message = await Message.findById(messageId);
 
-//     if (!message) {
-//         return next(new ErrorHandler("Message not found", 404));
-//     }
+    if (!message) {
+        return next(new ErrorHandler("Original message not found", 404));
+    }
 
-//     // Check if the current user is the recipient
-//     if (message.recipientId.toString() !== req.user.id) {
-//         return next(new ErrorHandler("You are not authorized to mark this message as read", 403));
-//     }
+    // Check if the current user is the sender
+    if (message.senderId.toString() !== req.user.id) {
+        return next(new ErrorHandler("You are not authorized to edit this message", 403));
+    }
 
-//     // Update the message as read (you can add a 'read' field if you wish)
-//     message.read = true;  // Assuming you add a 'read' field to the schema
+    // Update the message
+    message.message = newMessage;
+    await message.save();
 
-//     await message.save();
+    res.status(200).json({
+        success: true,
+        message: "Message updated successfully"
+    });
+});
 
-//     res.status(200).json({
-//         success: true,
-//         message: "Message marked as read"
-//     });
-// });
-// -----------------send message-------
+
+
+//------------------- Function to mark a message as read should be done in frontend
