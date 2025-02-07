@@ -7,7 +7,6 @@ export const createClass = catchAsyncErrors(async (req, res, next) => {
     const { name, description, category } = req.body;
     if(!name || !description || !category){
         return next(new ErrorHandler('Please Provide Complete detail'))
-
     }
     const userId = req.user.id;
     let classCode;
@@ -39,6 +38,38 @@ export const createClass = catchAsyncErrors(async (req, res, next) => {
         success: true,
         message: "Class created successfully",
         class: newClass
+    });
+});
+// ----------------------Update Class---------------
+export const updateClass = catchAsyncErrors(async (req, res, next) => {
+    const { classId } = req.params;
+    const { name, description } = req.body;
+    const userId = req.user.id;
+if(!name || !description){
+    return next(new ErrorHandler("Please provide content to update this class", 403));
+
+}
+    // Find the class
+    const classToUpdate = await Class.findById(classId);
+    if (!classToUpdate) {
+        return next(new ErrorHandler("Class not found", 404));
+    }
+
+    // Check if the user is an admin of this class
+    if (!classToUpdate.admins.includes(userId)) {
+        return next(new ErrorHandler("You are not authorized to edit this class", 403));
+    }
+
+    // Update class details
+    if (name) classToUpdate.name = name;
+    if (description) classToUpdate.description = description;
+
+    await classToUpdate.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Class updated successfully",
+        class: classToUpdate
     });
 });
 
