@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import { catchAsyncErrors } from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../middlewares/error.js';
+import { Membership } from '../models/classMembershipSchema.js';
 import { Class } from "../models/classSchema.js";
+// import { Membership } from '../models/messageSchema.js';
 // --------------Create Class--------------------
 export const createClass = catchAsyncErrors(async (req, res, next) => {
     const { name, description, category } = req.body;

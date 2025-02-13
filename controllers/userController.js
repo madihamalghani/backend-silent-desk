@@ -21,18 +21,30 @@ export const register=catchAsyncErrors(async(req,res,next)=>{
 })
 
 // ------------Login User---------------------
-export const login=catchAsyncErrors(async(req,res,next)=>{
-    const {email,password} =req.body;
-    if(!email || !password){
-        return next(new ErrorHandler('Be good and fill full Login form',400))
-    }
-    const user=await User.findOne({email}).select("+password")//get password
-    if(!user){
-        return next(new ErrorHandler('Invalid email or password',400))
-    }
-    sendToken(user,201,res,'User logged in successfully!')
+export const login = catchAsyncErrors(async (req, res, next) => {
+    const { email, password } = req.body;
 
-})
+    // Check if both email and password are provided
+    if (!email || !password) {
+        return next(new ErrorHandler('Be good and fill full Login form', 400));
+    }
+
+    // Find user and SELECT password (since it's hidden by default)
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user) {
+        return next(new ErrorHandler('Invalid email or password', 400));
+    }
+
+    // ✅ Compare hashed password with entered password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        return next(new ErrorHandler('Invalid email or password', 400));
+    }
+
+    // If password matches, send token
+    sendToken(user, 201, res, 'User logged in successfully!');
+});
 
 // ---------------Logout User--------------------------
 export const logout=catchAsyncErrors(async(req,res,next)=>{
@@ -89,3 +101,4 @@ export const deleteAccount = catchAsyncErrors(async (req, res, next) => {
             message: "Account deleted successfully!"
         });
 });
+// ----------------get user----------------
