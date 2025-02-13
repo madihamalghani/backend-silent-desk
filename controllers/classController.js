@@ -77,24 +77,49 @@ if(!name || !description){
 
 
 // ---------------------Find class by code---------------
+// export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
+//     const { classCode } = req.body;
+//     if (!classCode) {
+//         return next(new ErrorHandler('Please Provide Class Code'))
+//     }
+//     const classExists = await Class.findOne({ classCode });
+//     if (!classExists) {
+//         return next(new ErrorHandler('Please Provide Correct Class Code'))
+
+//     }
+//     res.status(200).json({
+
+//         success: true,
+//         message: "Class Exists",
+//         class: classExists // Send the full class data from DB
+//     })
+
+// })
+
 export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
-    const { classCode } = req.body;
+    // Extract classCode from query parameters (NOT req.body)
+    const { classCode } = req.query;
+
     if (!classCode) {
-        return next(new ErrorHandler('Please Provide Class Code'))
+        return next(new ErrorHandler('Please Provide a Class Code', 400));
     }
+
+    // Find the class by its code
     const classExists = await Class.findOne({ classCode });
+
     if (!classExists) {
-        return next(new ErrorHandler('Please Provide Correct Class Code'))
-
+        return next(new ErrorHandler('Class Not Found. Please check the code and try again.', 404));
     }
-    res.status(200).json({
 
+    // Respond with class details
+    res.status(200).json({
         success: true,
         message: "Class Exists",
-        class: classExists // Send the full class data from DB
-    })
+        class: classExists // Send full class data
+    });
+});
 
-})
+
 // get--all-classes on my web
 export const getAllClasses = catchAsyncErrors(async (req, res, next) => {
     const classes = await Class.find(); // Fetch all classes
