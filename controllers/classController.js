@@ -97,14 +97,12 @@ if(!name || !description){
 // })
 
 export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
-    // Extract classCode from query parameters (NOT req.body)
     const { classCode } = req.query;
 
     if (!classCode) {
         return next(new ErrorHandler('Please Provide a Class Code', 400));
     }
 
-    // Find the class by its code
     const classExists = await Class.findOne({ classCode });
 
     if (!classExists) {
