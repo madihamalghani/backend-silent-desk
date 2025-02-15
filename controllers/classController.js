@@ -75,26 +75,23 @@ if(!name || !description){
     });
 });
 
+export const getClassDetails=catchAsyncErrors(async (req,res,next)=>{
+    const { classId } = req.params;
+    
+    // Find the class by its ID
+    const classDetails = await Class.findById(classId);
+    
+    if (!classDetails) {
+        return next(new ErrorHandler('Class Not Found', 404));
+    }
+    
+    // Respond with the class details
+    res.status(200).json({
+        success: true,
+        class: classDetails,
+    });
 
-// ---------------------Find class by code---------------
-// export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
-//     const { classCode } = req.body;
-//     if (!classCode) {
-//         return next(new ErrorHandler('Please Provide Class Code'))
-//     }
-//     const classExists = await Class.findOne({ classCode });
-//     if (!classExists) {
-//         return next(new ErrorHandler('Please Provide Correct Class Code'))
-
-//     }
-//     res.status(200).json({
-
-//         success: true,
-//         message: "Class Exists",
-//         class: classExists // Send the full class data from DB
-//     })
-
-// })
+})
 
 export const findClassByCode = catchAsyncErrors(async (req, res, next) => {
     const { classCode } = req.query;

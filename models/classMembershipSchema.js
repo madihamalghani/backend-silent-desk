@@ -26,7 +26,7 @@ const classMembershipSchema = new mongoose.Schema(
         },
         status: {  // 🔥 New field for approval
             type: String,
-            enum: ["pending", "approved"],
+            enum: ["pending", "approved","rejected"],
             default: "pending"
         },
         joinedAt: {

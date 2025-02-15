@@ -1,5 +1,5 @@
 import express from 'express';
-import { createClass, findClassByCode, getAdminClasses, getAllClasses, getUserClasses, updateClass } from '../controllers/classController.js';
+import { createClass, findClassByCode, getAdminClasses, getAllClasses, getClassDetails, getUserClasses, updateClass } from '../controllers/classController.js';
 import { isAuthenticated } from '../middlewares/auth.js';
 const router= express.Router();
 router.post("/create", isAuthenticated, createClass);
@@ -8,5 +8,6 @@ router.get('/all/classes',isAuthenticated,getAllClasses);
 router.get('/member/classes',isAuthenticated,getUserClasses);
 router.get('/admin/classes',isAuthenticated,getAdminClasses);
 router.put('/update/details/:classId',isAuthenticated,updateClass);
+router.get('/details/:classId', isAuthenticated, getClassDetails);
 
 export default router;

@@ -86,11 +86,12 @@ export const getPendingRequests = catchAsyncErrors(async (req, res, next) => {
 // ---------------- Approve or Reject Join Request ----------------
 
 export const managePendingRequest = catchAsyncErrors(async (req, res, next) => {
-    const { classId, userId, status } = req.body;
+    const { userId, status } = req.body;
     const adminId = req.user.id;
+    const { classId } = req.params;
 
 
-    if (!classId || !userId || !status) {
+    if ( !userId || !status) {
         return next(new ErrorHandler("Class ID, User ID, and Status are required", 400));
     }
 
