@@ -79,7 +79,7 @@ export const getPendingRequests = catchAsyncErrors(async (req, res, next) => {
     });
     res.status(200).json({
         success: true,
-        pendingRequests:formattedRequests,
+        pendingRequests: formattedRequests,
     });
 });
 
@@ -91,7 +91,7 @@ export const managePendingRequest = catchAsyncErrors(async (req, res, next) => {
     const { classId } = req.params;
 
 
-    if ( !userId || !status) {
+    if (!userId || !status) {
         return next(new ErrorHandler("Class ID, User ID, and Status are required", 400));
     }
 
@@ -143,21 +143,29 @@ export const listClassMembers = catchAsyncErrors(async (req, res, next) => {
 // ------------------------promoteToAmdmin------------------
 export const promoteToAdmin = catchAsyncErrors(async (req, res, next) => {
     const { classId } = req.params;
+    const { userId } = req.body; // The user to be promoted
+    const adminId = req.user.id; // The current admin
 
-    const { userId } = req.body;
+  
 
-    const adminId = req.user.id;
     if (!userId) {
         return next(new ErrorHandler("Provide User id", 404));
-
     }
+
     const classGroup = await Class.findById(classId);
     if (!classGroup) {
         return next(new ErrorHandler("Class not found", 404));
     }
-    if (!classGroup.admins.includes(adminId)) {
+
+    // Convert current admins to strings for reliable comparison
+    const currentAdminIds = classGroup.admins.map(id => id.toString());
+    console.log("classGroup.admins before promotion:", currentAdminIds);
+
+    if (!currentAdminIds.includes(adminId.toString())) {
         return next(new ErrorHandler("Only an admin can promote members", 403));
     }
+
+    // Update the membership document to set the role to "admin"
     const updatedMembership = await Membership.findOneAndUpdate(
         { classId, userId },
         { role: "admin" },
@@ -166,51 +174,61 @@ export const promoteToAdmin = catchAsyncErrors(async (req, res, next) => {
     if (!updatedMembership) {
         return next(new ErrorHandler("User not found in class", 404));
     }
-    if (!classGroup.admins.includes(userId)) {
+
+    // Force-add the userId to the admins array if not already present
+    if (!currentAdminIds.includes(userId.toString())) {
+        console.log("Adding userId to classGroup.admins:", userId);
         classGroup.admins.push(userId);
         await classGroup.save();
+        console.log("classGroup.admins after promotion:", classGroup.admins.map(id => id.toString()));
+    } else {
+        console.log("userId already exists in classGroup.admins");
     }
+
     res.status(200).json({
         success: true,
         message: "User promoted to admin",
-        membership: updatedMembership
+        membership: updatedMembership,
     });
 });
 
 
+
 // ------------------demoteAdmin------------------
 export const demoteAdmin = catchAsyncErrors(async (req, res, next) => {
-    const {  userId } = req.body;
-    const adminId = req.user.id;
-    const {classId}=req.params;
+    const { userId } = req.body; // The user to be demoted
+    const adminId = req.user.id;  // The current admin
+    const { classId } = req.params;
 
-    if ( !userId) {
-        return next(new ErrorHandler("User ID are required", 400));
-    }
 
     const classGroup = await Class.findById(classId);
     if (!classGroup) {
         return next(new ErrorHandler("Class not found", 404));
     }
 
-    if (!classGroup.admins.includes(adminId)) {
+    // Convert admins to strings for reliable comparison
+    const currentAdminIds = classGroup.admins.map(id => id.toString());
+    console.log("classGroup.admins before demotion:", currentAdminIds);
+
+    // Check that the requester is an admin
+    if (!currentAdminIds.includes(adminId.toString())) {
         return next(new ErrorHandler("You are not authorized to perform this action", 403));
     }
-    if (!classGroup.admins.includes(userId)) {
+    // Check that the user to be demoted is in the admins array
+    if (!currentAdminIds.includes(userId.toString())) {
+        console.log("Demotion failed: userId not found in admins array");
         return next(new ErrorHandler("User is not an admin!", 400));
     }
-    if (classGroup.admins.length === 1) {
+    // Prevent demoting the last admin
+    if (currentAdminIds.length === 1) {
         return next(new ErrorHandler("Cannot demote the last admin!", 400));
     }
 
-    // Remove user from admins list
-    classGroup.admins = classGroup.admins.filter(id => id.toString() !== userId);
-
-    if (!classGroup.members.includes(userId)) {
-        classGroup.members.push(userId);
-    }
-
+    // Remove the userId from the admins array
+    classGroup.admins = classGroup.admins.filter(id => id.toString() !== userId.toString());
     await classGroup.save();
+
+    console.log("classGroup.admins after demotion:", classGroup.admins.map(id => id.toString()));
 
     res.status(200).json({
         success: true,
@@ -219,10 +237,9 @@ export const demoteAdmin = catchAsyncErrors(async (req, res, next) => {
 });
 
 
-
 // ------------------------Remove User--------------------------------
 export const removeMember = catchAsyncErrors(async (req, res, next) => {
-    const { userId ,classId} = req.body;
+    const { userId, classId } = req.body;
     const adminId = req.user.id;
 
     const classGroup = await Class.findById(classId);
@@ -273,7 +290,7 @@ export const getUserClasses = catchAsyncErrors(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
-        message:"Your Classes",
+        message: "Your Classes",
         classes: allClasses
     });
 });

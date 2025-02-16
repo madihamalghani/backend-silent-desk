@@ -6,9 +6,9 @@ router.post("/join/request", isAuthenticated,requestToJoinClass );
 router.get("/get/pending-requests/:classId", isAuthenticated,getPendingRequests );
 router.post("/pending-request/status/:classId",isAuthenticated,managePendingRequest);
 router.get("/list/members/:classId",isAuthenticated,listClassMembers);
-router.post("/promote/admin/:classId",isAuthenticated,promoteToAdmin);
+router.put("/promote/admin/:classId",isAuthenticated,promoteToAdmin);
 router.delete("/remove/member",isAuthenticated,removeMember);
 router.delete("/leave/as-member/:classId",isAuthenticated,leaveClass);
-router.post("/demote-admin/:classId", isAuthenticated, demoteAdmin);
+router.put("/demote-admin/:classId", isAuthenticated, demoteAdmin);
 router.get("/get/myclasses",isAuthenticated,getUserClasses)
 export default router;
