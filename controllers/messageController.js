@@ -73,6 +73,41 @@ export const getMessagesForUser = catchAsyncErrors(async (req, res, next) => {
         messages
     });
 });
+// -----------------------------------
+export const getReceivedMessagesForUser = catchAsyncErrors(async (req, res, next) => {
+    const userId = req.user.id; // Get logged-in user ID
+
+    const messages = await Message.find({ recipientId: userId }) // Only received messages
+        .populate("senderId", "name") // Populate sender's name
+        .sort({ createdAt: -1 }); // Sort by latest messages
+
+    // Mark fetched messages as read
+    await Message.updateMany(
+        { recipientId: userId, read: false },
+        { $set: { read: true } }
+    );
+
+    res.status(200).json({
+        success: true,
+        messages,
+    });
+});
+// --------------------------------Send Messages-------------
+export const getSentMessagesForUser = catchAsyncErrors(async (req, res, next) => {
+    const userId = req.user.id; // Logged-in user as sender
+
+    // Find messages where the logged-in user is the sender
+    const messages = await Message.find({ senderId: userId })
+        .populate("recipientId", "name")  // Populate recipient's name
+        .sort({ createdAt: -1 });         // Optional: sort by latest sent messages first
+
+    res.status(200).json({
+        success: true,
+        messages,
+    });
+});
+
+
 // -----------------get unread messages from user--------------
 
 export const getUnreadMessagesForUser = catchAsyncErrors(async (req, res, next) => {
@@ -112,51 +147,68 @@ export const getMessageById = catchAsyncErrors(async (req, res, next) => {
 
 // Function to reply to a message
 export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
-    const { messageId, replyMessage } = req.body;
+    const { replyMessage, isAnonymous } = req.body;
+    const { messageId } = req.params;
+
+    console.log("Reply Message:", replyMessage);
+    console.log("Message ID:", messageId);
+    
+    // Validate the reply message
+    if (!replyMessage || replyMessage.trim().length === 0) {
+        return next(new ErrorHandler("Reply message cannot be empty", 400));
+    }
 
     // Find the original message
     const originalMessage = await Message.findById(messageId).populate('senderId recipientId');
 
     if (!originalMessage) {
+        console.log("Original message not found.");
         return next(new ErrorHandler("Original message not found", 404));
     }
 
+    console.log("Original Message:", originalMessage);
 
+    // Check if the current user is the recipient of the original message
+    const isRecipient = originalMessage.recipientId._id.toString() === req.user.id.toString();
+    
+    // Ensure the current user is not the sender of the original message
+    const isSender = originalMessage.senderId._id.toString() === req.user.id.toString();
 
-    // Check if the current user is either the sender or the recipient of the original message
-    if (originalMessage.senderId.toString() !== req.user.id && originalMessage.recipientId.toString() !== req.user.id) {
+    console.log("isRecipient:", isRecipient);
+    console.log("isSender:", isSender);
+
+    if (!isRecipient || isSender) {
+        console.log("User is not authorized to reply to this message.");
         return next(new ErrorHandler("You are not allowed to reply to this message", 403));
     }
 
-    // Create a reply
+    // Create the reply message
     const reply = new Message({
-        senderId: req.user.id,
-        recipientId: originalMessage.senderId === req.user.id ? originalMessage.recipientId : originalMessage.senderId, // Ensure recipientId is correctly assigned
+        senderId: req.user.id,                // Current user (recipient) becomes the sender of the reply
+        recipientId: originalMessage.senderId._id, // Reply goes back to the sender of the original message
         classId: originalMessage.classId,
         message: replyMessage,
-        isAnonymous: false  // Modify as needed
+        isAnonymous: isAnonymous || false      // Allow anonymous replies if specified
     });
 
+    try {
+        // Save the reply message to the database
+        await reply.save();
+        console.log("Reply saved successfully:", reply);
 
-    await reply.save();
-
-    // Check for valid recipientId before emitting WebSocket
-    if (!reply.recipientId) {
-        return next(new ErrorHandler("Recipient ID is missing for the reply", 400));
+        // Send a success response
+        res.status(200).json({
+            success: true,
+            message: "Reply sent successfully"
+        });
+    } catch (error) {
+        console.error("Error while saving reply:", error);
+        return next(new ErrorHandler("Failed to send reply", 500));
     }
-
-    // Emit WebSocket event for the reply
-    const io = req.app.get('socketio');
-    io.to(reply.recipientId.toString()).emit('newReply', {
-        message: reply,
-        senderId: req.user.id
-    });
-
-    res.status(200).json({
-        success: true,
-        message: "Reply sent successfully"
-    });
 });
+
+
+
 
 // ---------------------------------
 
