@@ -128,7 +128,11 @@ export const getAllClasses = catchAsyncErrors(async (req, res, next) => {
 export const getUserClasses = catchAsyncErrors(async (req, res, next) => {
     const userId = req.user.id;
 
-    const classes = await Class.find({ members: userId }); // Fetch classes where the user is a member
+    // Find memberships for the user with role "user"
+    const memberships = await Membership.find({ userId, role: "user" }).populate('classId'); // Optional: populate class details if needed
+
+    // If you only need class information, you can extract it like this:
+    const classes = memberships.map(membership => membership.classId);
 
     res.status(200).json({
         success: true,

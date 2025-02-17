@@ -7,7 +7,7 @@ router.get("/get/pending-requests/:classId", isAuthenticated,getPendingRequests 
 router.post("/pending-request/status/:classId",isAuthenticated,managePendingRequest);
 router.get("/list/members/:classId",isAuthenticated,listClassMembers);
 router.put("/promote/admin/:classId",isAuthenticated,promoteToAdmin);
-router.delete("/remove/member",isAuthenticated,removeMember);
+router.delete("/remove/member/:classId",isAuthenticated,removeMember);
 router.delete("/leave/as-member/:classId",isAuthenticated,leaveClass);
 router.put("/demote-admin/:classId", isAuthenticated, demoteAdmin);
 router.get("/get/myclasses",isAuthenticated,getUserClasses)

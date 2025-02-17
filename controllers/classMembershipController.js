@@ -159,7 +159,6 @@ export const promoteToAdmin = catchAsyncErrors(async (req, res, next) => {
 
     // Convert current admins to strings for reliable comparison
     const currentAdminIds = classGroup.admins.map(id => id.toString());
-    console.log("classGroup.admins before promotion:", currentAdminIds);
 
     if (!currentAdminIds.includes(adminId.toString())) {
         return next(new ErrorHandler("Only an admin can promote members", 403));
@@ -239,7 +238,8 @@ export const demoteAdmin = catchAsyncErrors(async (req, res, next) => {
 
 // ------------------------Remove User--------------------------------
 export const removeMember = catchAsyncErrors(async (req, res, next) => {
-    const { userId, classId } = req.body;
+    const { userId } = req.body;
+    const {classId}=req.params;
     const adminId = req.user.id;
 
     const classGroup = await Class.findById(classId);
