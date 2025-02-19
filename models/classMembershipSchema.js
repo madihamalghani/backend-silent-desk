@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-// user admission in class
 const classMembershipSchema = new mongoose.Schema(
     {
         userId: {
@@ -12,7 +11,6 @@ const classMembershipSchema = new mongoose.Schema(
             ref: "Class",
             required: true
         },
-        // This is the display name within the class.
         // It must be unique per class, but different classes can have the same display name.
         classDisplayName: {
             type: String,
