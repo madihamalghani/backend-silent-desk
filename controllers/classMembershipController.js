@@ -67,7 +67,6 @@ export const getPendingRequests = catchAsyncErrors(async (req, res, next) => {
     const formattedRequests = pendingRequests.map(request => {
         let formattedJoinDate = "Invalid date"; // Default value in case of invalid date
         try {
-            console.log("joinedAt value:", request.userId.joinedAt); // Log the actual joinedAt
             formattedJoinDate = formatDate(request.userId.joinedAt); // Format the joinedAt date here
         } catch (error) {
             console.error("Error formatting date: ", error.message);
@@ -176,7 +175,6 @@ export const promoteToAdmin = catchAsyncErrors(async (req, res, next) => {
 
     // Force-add the userId to the admins array if not already present
     if (!currentAdminIds.includes(userId.toString())) {
-        console.log("Adding userId to classGroup.admins:", userId);
         classGroup.admins.push(userId);
         await classGroup.save();
         console.log("classGroup.admins after promotion:", classGroup.admins.map(id => id.toString()));
@@ -207,7 +205,6 @@ export const demoteAdmin = catchAsyncErrors(async (req, res, next) => {
 
     // Convert admins to strings for reliable comparison
     const currentAdminIds = classGroup.admins.map(id => id.toString());
-    console.log("classGroup.admins before demotion:", currentAdminIds);
 
     // Check that the requester is an admin
     if (!currentAdminIds.includes(adminId.toString())) {
@@ -215,7 +212,6 @@ export const demoteAdmin = catchAsyncErrors(async (req, res, next) => {
     }
     // Check that the user to be demoted is in the admins array
     if (!currentAdminIds.includes(userId.toString())) {
-        console.log("Demotion failed: userId not found in admins array");
         return next(new ErrorHandler("User is not an admin!", 400));
     }
     // Prevent demoting the last admin
@@ -227,7 +223,6 @@ export const demoteAdmin = catchAsyncErrors(async (req, res, next) => {
     classGroup.admins = classGroup.admins.filter(id => id.toString() !== userId.toString());
     await classGroup.save();
 
-    console.log("classGroup.admins after demotion:", classGroup.admins.map(id => id.toString()));
 
     res.status(200).json({
         success: true,

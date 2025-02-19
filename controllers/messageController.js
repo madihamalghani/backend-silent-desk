@@ -150,8 +150,7 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
     const { replyMessage, isAnonymous } = req.body;
     const { messageId } = req.params;
 
-    console.log("Reply Message:", replyMessage);
-    console.log("Message ID:", messageId);
+ 
     
     // Validate the reply message
     if (!replyMessage || replyMessage.trim().length === 0) {
@@ -166,7 +165,6 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Original message not found", 404));
     }
 
-    console.log("Original Message:", originalMessage);
 
     // Check if the current user is the recipient of the original message
     const isRecipient = originalMessage.recipientId._id.toString() === req.user.id.toString();
@@ -174,9 +172,7 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
     // Ensure the current user is not the sender of the original message
     const isSender = originalMessage.senderId._id.toString() === req.user.id.toString();
 
-    console.log("isRecipient:", isRecipient);
-    console.log("isSender:", isSender);
-
+  
     if (!isRecipient || isSender) {
         console.log("User is not authorized to reply to this message.");
         return next(new ErrorHandler("You are not allowed to reply to this message", 403));
@@ -194,7 +190,6 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
     try {
         // Save the reply message to the database
         await reply.save();
-        console.log("Reply saved successfully:", reply);
 
         // Send a success response
         res.status(200).json({
@@ -202,7 +197,6 @@ export const replyToMessage = catchAsyncErrors(async (req, res, next) => {
             message: "Reply sent successfully"
         });
     } catch (error) {
-        console.error("Error while saving reply:", error);
         return next(new ErrorHandler("Failed to send reply", 500));
     }
 });
